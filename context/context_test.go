@@ -1,4 +1,4 @@
-package geomcontext
+package context
 
 import (
 	"fmt"

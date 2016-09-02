@@ -1,5 +1,5 @@
 // Provides a convenience wrapper for the geom and encoding packages.
-package geomcontext
+package context
 
 import (
 	"vistarmedia.com/vistar/geom"

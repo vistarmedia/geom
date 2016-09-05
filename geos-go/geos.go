@@ -249,6 +249,14 @@ func (g *Geometry) Disjoint(h *Handle, o *Geometry) (bool, error) {
 	return predicate(C.GEOSDisjoint_r(h.h, g.g, o.g))
 }
 
+func (g *Geometry) Touches(h *Handle, o *Geometry) (bool, error) {
+	return predicate(C.GEOSTouches_r(h.h, g.g, o.g))
+}
+
+func (g *Geometry) Overlaps(h *Handle, o *Geometry) (bool, error) {
+	return predicate(C.GEOSOverlaps_r(h.h, g.g, o.g))
+}
+
 func (g *Geometry) Within(h *Handle, o *Geometry) (bool, error) {
 	return predicate(C.GEOSWithin_r(h.h, g.g, o.g))
 }

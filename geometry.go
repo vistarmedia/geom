@@ -155,11 +155,11 @@ func (g *Geometry) Buffer(width float64, quadsegs int) (*Geometry, error) {
 }
 
 func (g *Geometry) Intersection(o *Geometry) (*Geometry, error) {
-	return g.binaryOperation(g.g.Intersection, o.UnsafeToGeos())
+	return g.binaryOperation(g.g.Intersection, o.g)
 }
 
 func (g *Geometry) Union(o *Geometry) (*Geometry, error) {
-	return g.binaryOperation(g.g.Union, o.UnsafeToGeos())
+	return g.binaryOperation(g.g.Union, o.g)
 }
 
 func (g *Geometry) Envelope() (*Geometry, error) {
@@ -167,19 +167,27 @@ func (g *Geometry) Envelope() (*Geometry, error) {
 }
 
 func (g *Geometry) Intersects(o *Geometry) (bool, error) {
-	return g.binaryPredicate(g.g.Intersects, o.UnsafeToGeos())
+	return g.binaryPredicate(g.g.Intersects, o.g)
 }
 
 func (g *Geometry) Contains(o *Geometry) (bool, error) {
-	return g.binaryPredicate(g.g.Contains, o.UnsafeToGeos())
+	return g.binaryPredicate(g.g.Contains, o.g)
 }
 
 func (g *Geometry) Disjoint(o *Geometry) (bool, error) {
-	return g.binaryPredicate(g.g.Disjoint, o.UnsafeToGeos())
+	return g.binaryPredicate(g.g.Disjoint, o.g)
+}
+
+func (g *Geometry) Touches(o *Geometry) (bool, error) {
+	return g.binaryPredicate(g.g.Touches, o.g)
+}
+
+func (g *Geometry) Overlaps(o *Geometry) (bool, error) {
+	return g.binaryPredicate(g.g.Overlaps, o.g)
 }
 
 func (g *Geometry) Within(o *Geometry) (bool, error) {
-	return g.binaryPredicate(g.g.Within, o.UnsafeToGeos())
+	return g.binaryPredicate(g.g.Within, o.g)
 }
 
 func (g *Geometry) IsEmpty() (bool, error) {
@@ -202,5 +210,5 @@ func (pg *PreparedGeometry) Covers(o *Geometry) (bool, error) {
 	pg.Lock()
 	defer pg.Unlock()
 
-	return pg.p.Covers(h, o.UnsafeToGeos())
+	return pg.p.Covers(h, o.g)
 }

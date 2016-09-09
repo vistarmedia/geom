@@ -29,6 +29,10 @@ type Geometry struct {
 	g  *geos.Geometry
 }
 
+type toGeos interface {
+	UnsafeToGeos() *geos.Geometry
+}
+
 type unaryOp func(*geos.Handle) (*geos.Geometry, error)
 type unaryPredicate func(*geos.Handle) (bool, error)
 type binaryOp func(*geos.Handle, *geos.Geometry) (*geos.Geometry, error)
@@ -69,21 +73,18 @@ func (g *Geometry) unaryPredicate(op unaryPredicate) (bool, error) {
 	return op(h)
 }
 
-func (g *Geometry) binaryOperation(
-	op binaryOp, o *geos.Geometry) (*Geometry, error) {
+func (g *Geometry) binaryOperation(op binaryOp, o toGeos) (*Geometry, error) {
 
 	h := g.hp.Get()
-	geom, err := op(h, o)
+	geom, err := op(h, o.UnsafeToGeos())
 	g.hp.Put(h)
 	return newGeometryOrError(g.hp, geom, err)
 }
 
-func (g *Geometry) binaryPredicate(
-	op binaryPredicate, o *geos.Geometry) (bool, error) {
-
+func (g *Geometry) binaryPredicate(op binaryPredicate, o toGeos) (bool, error) {
 	h := g.hp.Get()
 	defer g.hp.Put(h)
-	return op(h, o)
+	return op(h, o.UnsafeToGeos())
 }
 
 func (g *Geometry) Prepared() *PreparedGeometry {
@@ -154,44 +155,70 @@ func (g *Geometry) Buffer(width float64, quadsegs int) (*Geometry, error) {
 	return newGeometryOrError(g.hp, geom, err)
 }
 
-func (g *Geometry) Intersection(o *Geometry) (*Geometry, error) {
-	return g.binaryOperation(g.g.Intersection, o.g)
+func (g *Geometry) Intersection(o toGeos) (*Geometry, error) {
+	return g.binaryOperation(g.g.Intersection, o)
 }
 
-func (g *Geometry) Union(o *Geometry) (*Geometry, error) {
-	return g.binaryOperation(g.g.Union, o.g)
+func (g *Geometry) Union(o toGeos) (*Geometry, error) {
+	return g.binaryOperation(g.g.Union, o)
 }
 
 func (g *Geometry) Envelope() (*Geometry, error) {
 	return g.unaryOperation(g.g.Envelope)
 }
 
-func (g *Geometry) Intersects(o *Geometry) (bool, error) {
-	return g.binaryPredicate(g.g.Intersects, o.g)
+func (g *Geometry) Intersects(o toGeos) (bool, error) {
+	return g.binaryPredicate(g.g.Intersects, o)
 }
 
-func (g *Geometry) Contains(o *Geometry) (bool, error) {
-	return g.binaryPredicate(g.g.Contains, o.g)
+func (g *Geometry) Contains(o toGeos) (bool, error) {
+	return g.binaryPredicate(g.g.Contains, o)
 }
 
-func (g *Geometry) Disjoint(o *Geometry) (bool, error) {
-	return g.binaryPredicate(g.g.Disjoint, o.g)
+func (g *Geometry) Disjoint(o toGeos) (bool, error) {
+	return g.binaryPredicate(g.g.Disjoint, o)
 }
 
-func (g *Geometry) Touches(o *Geometry) (bool, error) {
-	return g.binaryPredicate(g.g.Touches, o.g)
+func (g *Geometry) Touches(o toGeos) (bool, error) {
+	return g.binaryPredicate(g.g.Touches, o)
 }
 
-func (g *Geometry) Overlaps(o *Geometry) (bool, error) {
-	return g.binaryPredicate(g.g.Overlaps, o.g)
+func (g *Geometry) Overlaps(o toGeos) (bool, error) {
+	return g.binaryPredicate(g.g.Overlaps, o)
 }
 
-func (g *Geometry) Within(o *Geometry) (bool, error) {
-	return g.binaryPredicate(g.g.Within, o.g)
+func (g *Geometry) Within(o toGeos) (bool, error) {
+	return g.binaryPredicate(g.g.Within, o)
 }
 
 func (g *Geometry) IsEmpty() (bool, error) {
 	return g.unaryPredicate(g.g.IsEmpty)
+}
+
+// Coerces to Point. Panics if the underlying type doesnt match.
+func (g *Geometry) Point() Point {
+	if id := g.Type(); id != POINT {
+		panic(fmt.Sprintf("Cannot cast geom with type %d to POINT (%d)", id, POINT))
+	}
+	return newPoint(g)
+}
+
+// Coerces to LinearRing. Panics if the underlying type doesnt match.
+func (g *Geometry) LinearRing() LinearRing {
+	if id := g.Type(); id != LINEARRING {
+		panic(fmt.Sprintf(
+			"Cannot cast geom with type %d to LINEARRING (%d)", id, LINEARRING))
+	}
+	return newLinearRing(g)
+}
+
+// Coerces to Polygon. Panics if the underlying type doesnt match.
+func (g *Geometry) Polygon() Polygon {
+	if id := g.Type(); id != POLYGON {
+		panic(fmt.Sprintf(
+			"Cannot cast geom with type %d to POLYGON (%d)", id, POLYGON))
+	}
+	return newPolygon(g)
 }
 
 // Expensive to create, but faster predicate operations.
@@ -204,11 +231,107 @@ type PreparedGeometry struct {
 	sync.Mutex
 }
 
-func (pg *PreparedGeometry) Covers(o *Geometry) (bool, error) {
+func (pg *PreparedGeometry) Covers(o toGeos) (bool, error) {
 	h := pg.hp.Get()
 	defer pg.hp.Put(h)
 	pg.Lock()
 	defer pg.Unlock()
 
-	return pg.p.Covers(h, o.g)
+	return pg.p.Covers(h, o.UnsafeToGeos())
+}
+
+// Point
+type Point struct {
+	*Geometry
+}
+
+func newPoint(g *Geometry) Point {
+	return Point{g}
+}
+
+func (p Point) Coord() (Coord, error) {
+	h := p.hp.Get()
+	defer p.hp.Put(h)
+	cs, err := p.g.CoordSeq(h)
+	if err != nil {
+		return Coord{}, err
+	}
+	return Coord{cs.X(h, 0), cs.Y(h, 0)}, nil
+}
+
+// LinearRing
+type LinearRing struct {
+	*Geometry
+}
+
+func newLinearRing(g *Geometry) LinearRing {
+	return LinearRing{g}
+}
+
+func (lr LinearRing) Coords() (coords []Coord, err error) {
+	h := lr.hp.Get()
+	defer lr.hp.Put(h)
+	cs, err := lr.g.CoordSeq(h)
+	if err != nil {
+		return
+	}
+	for i := uint(0); i < cs.Size(h); i++ {
+		coords = append(coords, Coord{cs.X(h, i), cs.Y(h, i)})
+	}
+	return
+}
+
+// Polygon
+type Polygon struct {
+	*Geometry
+}
+
+func newPolygon(g *Geometry) Polygon {
+	return Polygon{g}
+}
+
+func (p Polygon) Shell() (coords []Coord, err error) {
+	h := p.hp.Get()
+	defer p.hp.Put(h)
+	geosShell, err := p.g.ExteriorRing(h)
+	if err != nil {
+		return
+	}
+	cs, err := geosShell.CoordSeq(h)
+	if err != nil {
+		return
+	}
+	// It would be nice if this could just return a LinearRing, but the polygon
+	// owns the shell so we would have to clone it to be safe.
+	for i := uint(0); i < cs.Size(h); i++ {
+		coords = append(coords, Coord{cs.X(h, i), cs.Y(h, i)})
+	}
+	return
+}
+
+func (p Polygon) Holes() (coords [][]Coord, err error) {
+	h := p.hp.Get()
+	defer p.hp.Put(h)
+	numRings, err := p.g.NumInteriorRings(h)
+	if err != nil {
+		return
+	}
+	for ringIdx := 0; ringIdx < numRings; ringIdx++ {
+		var geosRing *geos.Geometry
+		geosRing, err = p.g.InteriorRingN(h, ringIdx)
+		if err != nil {
+			return
+		}
+		var cs *geos.CoordSeq
+		cs, err = geosRing.CoordSeq(h)
+		if err != nil {
+			return
+		}
+		var ringCoords []Coord
+		for i := uint(0); i < cs.Size(h); i++ {
+			ringCoords = append(ringCoords, Coord{cs.X(h, i), cs.Y(h, i)})
+		}
+		coords = append(coords, ringCoords)
+	}
+	return
 }

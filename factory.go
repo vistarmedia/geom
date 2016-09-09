@@ -46,10 +46,10 @@ func (f Factory) FromGeos(g *geos.Geometry) *Geometry {
 	return newGeometry(f.hp, g)
 }
 
-func (f Factory) NewEmptyPoint() *Geometry {
+func (f Factory) NewEmptyPoint() Point {
 	h := f.hp.Get()
 	defer f.hp.Put(h)
-	return newGeometry(f.hp, geos.NewEmptyPoint(h))
+	return newPoint(newGeometry(f.hp, geos.NewEmptyPoint(h)))
 }
 
 func (f Factory) NewEmptyPolygon() *Geometry {
@@ -58,50 +58,55 @@ func (f Factory) NewEmptyPolygon() *Geometry {
 	return newGeometry(f.hp, geos.NewEmptyPolygon(h))
 }
 
-func (f Factory) NewPoint(c Coord) (*Geometry, error) {
+func (f Factory) NewPoint(c Coord) (p Point, err error) {
 	h := f.hp.Get()
 	defer f.hp.Put(h)
 	cs := geos.NewCoordSeq(h, 1, 2)
-	if err := cs.SetX(h, 0, c.X); err != nil {
-		return nil, err
+	if err = cs.SetX(h, 0, c.X); err != nil {
+		return
 	}
-	if err := cs.SetY(h, 0, c.Y); err != nil {
-		return nil, err
+	if err = cs.SetY(h, 0, c.Y); err != nil {
+		return
 	}
 	if point, err := cs.Point(h); err == nil {
-		return newGeometry(f.hp, point), nil
-	} else {
-		return nil, err
+		p = newPoint(newGeometry(f.hp, point))
 	}
+	return
 }
 
-func (f Factory) NewLinearRing(coords []Coord) (*Geometry, error) {
+func (f Factory) NewLinearRing(coords []Coord) (lr LinearRing, err error) {
 	h := f.hp.Get()
 	g, err := newGeosLinearRing(h, coords)
 	f.hp.Put(h)
-	return newGeometryOrError(f.hp, g, err)
+	if err != nil {
+		return
+	}
+	lr = newLinearRing(newGeometry(f.hp, g))
+	return
 }
 
-//TODO: these geometries need to be LinearRings.
-//      Can probably model this with types.
 func (f Factory) NewPolygon(
-	shell []Coord, holes ...[]Coord) (*Geometry, error) {
+	shell []Coord, holes ...[]Coord) (p Polygon, err error) {
 
 	h := f.hp.Get()
 	defer f.hp.Put(h)
 	shellRing, err := newGeosLinearRing(h, shell)
 	if err != nil {
-		return nil, err
+		return
 	}
 	var holeRings []*geos.Geometry
 	for _, hole := range holes {
-		holeRing, err := newGeosLinearRing(h, hole)
+		var holeRing *geos.Geometry
+		holeRing, err = newGeosLinearRing(h, hole)
 		if err != nil {
-			return nil, err
+			return
 		}
 		holeRings = append(holeRings, holeRing)
 	}
-
 	g, err := geos.NewPolygon(h, shellRing, holeRings)
-	return newGeometryOrError(f.hp, g, err)
+	if err != nil {
+		return
+	}
+	p = newPolygon(newGeometry(f.hp, g))
+	return
 }

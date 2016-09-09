@@ -213,6 +213,16 @@ func (g *Geometry) Buffer(
 	return &Geometry{geom}, nil
 }
 
+// Can only be called with LineString, LinearRing, and Point. Parent Geometry
+// retains ownership of the coordseq
+func (g *Geometry) CoordSeq(h *Handle) (*CoordSeq, error) {
+	cs := C.GEOSGeom_getCoordSeq_r(h.h, g.g)
+	if cs == nil {
+		return nil, ErrGeos
+	}
+	return &CoordSeq{cs}, nil
+}
+
 func (g *Geometry) Intersection(h *Handle, o *Geometry) (*Geometry, error) {
 	geom := C.GEOSIntersection_r(h.h, g.g, o.g)
 	if geom == nil {
@@ -231,6 +241,33 @@ func (g *Geometry) Union(h *Handle, o *Geometry) (*Geometry, error) {
 
 func (g *Geometry) Envelope(h *Handle) (*Geometry, error) {
 	geom := C.GEOSEnvelope_r(h.h, g.g)
+	if geom == nil {
+		return nil, ErrGeos
+	}
+	return &Geometry{geom}, nil
+}
+
+// Can only be called with polygons. Polygon retains ownership of ring
+func (g *Geometry) ExteriorRing(h *Handle) (*Geometry, error) {
+	geom := C.GEOSGetExteriorRing_r(h.h, g.g)
+	if geom == nil {
+		return nil, ErrGeos
+	}
+	return &Geometry{geom}, nil
+}
+
+// Can only be called with polygons.
+func (g *Geometry) NumInteriorRings(h *Handle) (int, error) {
+	num := C.GEOSGetNumInteriorRings_r(h.h, g.g)
+	if num < 0 {
+		return 0, ErrGeos
+	}
+	return int(num), nil
+}
+
+// Can only be called with polygons. Polygon retains ownership of ring
+func (g *Geometry) InteriorRingN(h *Handle, n int) (*Geometry, error) {
+	geom := C.GEOSGetInteriorRingN_r(h.h, g.g, C.int(n))
 	if geom == nil {
 		return nil, ErrGeos
 	}

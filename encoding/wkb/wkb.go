@@ -7,6 +7,10 @@ import (
 	"vistarmedia.com/vistar/geom/geos-go/handle"
 )
 
+type Encodeable interface {
+	UnsafeToGeos() *geos.Geometry
+}
+
 type Encoder struct {
 	hp handle.GeosHandleProvider
 }
@@ -15,7 +19,7 @@ func NewEncoder(hp handle.GeosHandleProvider) *Encoder {
 	return &Encoder{hp}
 }
 
-func (e *Encoder) Encode(g *geom.Geometry) []byte {
+func (e *Encoder) Encode(g Encodeable) []byte {
 	h := e.hp.Get()
 	defer e.hp.Put(h)
 	// Unlike WKT, the geos WKB reader and writer is not thread safe. The object

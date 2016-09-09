@@ -8,6 +8,10 @@ import (
 	"vistarmedia.com/vistar/geom/geos-go/memory"
 )
 
+type Encodeable interface {
+	UnsafeToGeos() *geos.Geometry
+}
+
 type Encoder struct {
 	writer *geos.WKTWriter
 	hp     handle.GeosHandleProvider
@@ -24,7 +28,7 @@ func NewEncoder(hp handle.GeosHandleProvider) *Encoder {
 	}
 }
 
-func (e *Encoder) Encode(g *geom.Geometry) string {
+func (e *Encoder) Encode(g Encodeable) string {
 	h := e.hp.Get()
 	defer e.hp.Put(h)
 	return e.writer.Write(h, g.UnsafeToGeos())

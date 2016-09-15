@@ -1,6 +1,7 @@
 package geom
 
 import (
+	"fmt"
 	"testing"
 
 	"vistarmedia.com/vistar/geom/geos-go/handle"
@@ -163,6 +164,80 @@ func TestCoordsFromPolygon(t *testing.T) {
 	}
 	if !compareCoordSlice(hole2, holes[1]) {
 		t.Errorf("Hole coords dont match, in: %v, out %v", hole2, holes[1])
+	}
+}
+
+func TestGeometriesOfGeom(t *testing.T) {
+	coords := []Coord{
+		{0, 0},
+		{10, 0},
+		{10, 10},
+		{0, 0},
+	}
+	fact := NewFactory(handle.NewPooledHandleProvider())
+	lr, err := fact.NewLinearRing(coords)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	n, err := lr.NumGeometries()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != 1 {
+		t.Error("expected 1 geometry")
+	}
+
+	gs, err := lr.Geometries()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(gs) != 1 {
+		t.Errorf("Expected 1 geometry, got %d", len(gs))
+	}
+
+	// From this package, we can't reach inside the geos structs to check pointer
+	// equality without reflection. The fmt code will print out the addresses,
+	// though. It's hacky, but we can prove they're not the same instance
+	act := fmt.Sprintf("%v", gs[0].g)
+	exp := fmt.Sprintf("%v", lr.g)
+	if act == exp {
+		t.Errorf("Expected to get a cloned geometry")
+	}
+}
+
+func TestBounds(t *testing.T) {
+	coords := []Coord{
+		{30, 10},
+		{40, 40},
+		{20, 40},
+		{10, 20},
+		{30, 10},
+	}
+	fact := NewFactory(handle.NewPooledHandleProvider())
+	lr, err := fact.NewLinearRing(coords)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c0, c1, err := lr.Bounds()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if c0.X != 10 {
+		t.Errorf("Expected x0 to be 10, got %f", c0.X)
+	}
+	if c0.Y != 10 {
+		t.Errorf("Expected y0 to be 10, got %f", c0.Y)
+	}
+
+	if c1.X != 40 {
+		t.Errorf("Expected x1 to be 40, got %f", c1.X)
+	}
+	if c1.Y != 40 {
+		t.Errorf("Expected y1 to be 40, got %f", c1.Y)
 	}
 }
 

@@ -1,6 +1,7 @@
 package geos
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -256,5 +257,85 @@ func TestWKB(t *testing.T) {
 	}
 	if newPoly.Area(h) != 100 {
 		t.Error("Error reading WKB")
+	}
+}
+
+func TestNewEmptyMultipolygon(t *testing.T) {
+	h := NewHandle()
+	defer h.Destroy()
+
+	writer := NewWKTWriter(h)
+	defer writer.Destroy(h)
+
+	wkt := writer.Write(h, NewEmptyGeometryCollection(h, MULTIPOLYGON))
+	exp := "MULTIPOLYGON EMPTY"
+	if wkt != exp {
+		t.Fatalf("Expected '%s', got '%s'", exp, wkt)
+	}
+}
+
+func TestNewMultipolygon(t *testing.T) {
+	h := NewHandle()
+	defer h.Destroy()
+
+	writer := NewWKTWriter(h)
+	defer writer.Destroy(h)
+
+	cs0 := NewCoordSeq(h, 4, 2)
+	cs0.SetX(h, 0, 0)
+	cs0.SetY(h, 0, 0)
+
+	cs0.SetX(h, 1, 1)
+	cs0.SetY(h, 1, 1)
+
+	cs0.SetX(h, 2, 1)
+	cs0.SetY(h, 2, 0)
+
+	cs0.SetX(h, 3, 0)
+	cs0.SetY(h, 3, 0)
+
+	lr0, _ := cs0.LinearRing(h)
+	p0, _ := NewPolygon(h, lr0, nil)
+
+	cs1 := NewCoordSeq(h, 4, 2)
+	cs1.SetX(h, 0, 2)
+	cs1.SetY(h, 0, 2)
+
+	cs1.SetX(h, 1, 3)
+	cs1.SetY(h, 1, 3)
+
+	cs1.SetX(h, 2, 3)
+	cs1.SetY(h, 2, 2)
+
+	cs1.SetX(h, 3, 2)
+	cs1.SetY(h, 3, 2)
+
+	lr1, _ := cs1.LinearRing(h)
+	p1, _ := NewPolygon(h, lr1, nil)
+
+	mp, err := NewGeometryCollection(h, MULTIPOLYGON, []*Geometry{p0, p1})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	wkt := writer.Write(h, mp)
+	if !strings.HasPrefix(wkt, "MULTIPOLYGON (") {
+		t.Fatalf("Unexpected WKT: %s", wkt)
+	}
+
+	// It's brutal to do a big string compare here. Instead, we'll count the
+	// braces in the MULTIPOLYGON
+	// Each poly:        2 (
+	// Each poly's ring: 2 (
+	// MP def:           1 (
+	// TOTAL             5
+	nOpens := strings.Count(wkt, "(")
+	if nOpens != 5 {
+		t.Fatalf("expected 5 ('s, found %d", nOpens)
+	}
+
+	nCloses := strings.Count(wkt, ")")
+	if nCloses != 5 {
+		t.Fatalf("expected 5 ('s, found %d", nCloses)
 	}
 }

@@ -195,6 +195,28 @@ func (g *Geometry) IsEmpty() (bool, error) {
 	return g.unaryPredicate(g.g.IsEmpty)
 }
 
+// Minimum and maximum X and Y bounds for a geometry. This will cast the
+// envelope to a Polygon, get the envelope, then inspect the shell directly.
+// We can inspect exact array positions because, according to the geos docs,
+// "When Envelope objects are created or initialized, the supplies extent values
+// are automatically sorted into the correct order."
+func (g *Geometry) Bounds() (c0 Coord, c1 Coord, err error) {
+	var (
+		env   *Geometry
+		shell []Coord
+	)
+
+	if env, err = g.Envelope(); err != nil {
+		return
+	}
+
+	if shell, err = env.Polygon().Shell(); err != nil {
+		return
+	}
+
+	return shell[0], shell[2], nil
+}
+
 // Coerces to Point. Panics if the underlying type doesnt match.
 func (g *Geometry) Point() Point {
 	if id := g.Type(); id != POINT {
@@ -219,6 +241,54 @@ func (g *Geometry) Polygon() Polygon {
 			"Cannot cast geom with type %d to POLYGON (%d)", id, POLYGON))
 	}
 	return newPolygon(g)
+}
+
+// Number of geometries in this geometry. Non-collection types will always
+// return 1.
+func (g *Geometry) NumGeometries() (int, error) {
+	h := g.hp.Get()
+	defer g.hp.Put(h)
+
+	n, err := g.g.NumGeometries(h)
+	if err != nil {
+		return 0, err
+	}
+	return n, nil
+}
+
+// Gets the nth geometry in this presumed collection. Non-collect geometries
+// will only accept 0. Collection retains ownership of the underlying geometry.
+// A GC-managed clone is returned.
+func (g *Geometry) GeometryN(n int) (*Geometry, error) {
+	h := g.hp.Get()
+	defer g.hp.Put(h)
+
+	owned, err := g.g.GeometryN(h, n)
+	if err != nil {
+		return nil, err
+	}
+	cloned := owned.Clone(h)
+	return newGeometry(g.hp, cloned), nil
+}
+
+// Slice of all geometries of this geometry. If this is not a geometry
+// collection, it will have one element
+func (g *Geometry) Geometries() ([]*Geometry, error) {
+	n, err := g.NumGeometries()
+	if err != nil {
+		return nil, err
+	}
+
+	geoms := make([]*Geometry, n)
+	for i := 0; i < n; i++ {
+		if geom, err := g.GeometryN(i); err != nil {
+			return nil, err
+		} else {
+			geoms[i] = geom
+		}
+	}
+
+	return geoms, nil
 }
 
 // Expensive to create, but faster predicate operations.
@@ -334,4 +404,13 @@ func (p Polygon) Holes() (coords [][]Coord, err error) {
 		coords = append(coords, ringCoords)
 	}
 	return
+}
+
+// Multipolygon
+type Multipolygon struct {
+	*Geometry
+}
+
+func newMultiPolygon(g *Geometry) Multipolygon {
+	return Multipolygon{g}
 }

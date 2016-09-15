@@ -52,10 +52,17 @@ func (f Factory) NewEmptyPoint() Point {
 	return newPoint(newGeometry(f.hp, geos.NewEmptyPoint(h)))
 }
 
-func (f Factory) NewEmptyPolygon() *Geometry {
+func (f Factory) NewEmptyPolygon() Polygon {
 	h := f.hp.Get()
 	defer f.hp.Put(h)
-	return newGeometry(f.hp, geos.NewEmptyPolygon(h))
+	return newPolygon(newGeometry(f.hp, geos.NewEmptyPolygon(h)))
+}
+
+func (f Factory) NewEmptyMultipolygon() Multipolygon {
+	h := f.hp.Get()
+	defer f.hp.Put(h)
+	mp := geos.NewEmptyGeometryCollection(h, geos.MULTIPOLYGON)
+	return newMultiPolygon(newGeometry(f.hp, mp))
 }
 
 func (f Factory) NewPoint(c Coord) (p Point, err error) {
@@ -108,5 +115,25 @@ func (f Factory) NewPolygon(
 		return
 	}
 	p = newPolygon(newGeometry(f.hp, g))
+	return
+}
+
+// Create a MULTIPOLYGON from some POLYGONs. This will clone the passed POLYGONs
+// and assume ownership of those clones. Arguments continue to be managed
+// independently by GC
+func (f Factory) NewMultipolygon(ps ...Polygon) (mp Multipolygon, err error) {
+	h := f.hp.Get()
+	defer f.hp.Put(h)
+
+	geoms := make([]*geos.Geometry, len(ps))
+	for i := 0; i < len(ps); i++ {
+		geoms[i] = ps[i].g.Clone(h)
+	}
+
+	g, err := geos.NewGeometryCollection(h, geos.MULTIPOLYGON, geoms)
+	if err != nil {
+		return
+	}
+	mp = newMultiPolygon(newGeometry(f.hp, g))
 	return
 }

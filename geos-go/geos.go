@@ -146,6 +146,11 @@ type Geometry struct {
 	g *C.GEOSGeometry
 }
 
+// Clones this geometry. The caller takes ownership
+func (g *Geometry) Clone(h *Handle) *Geometry {
+	return &Geometry{C.GEOSGeom_clone_r(h.h, g.g)}
+}
+
 func (g *Geometry) Destroy(h *Handle) {
 	C.GEOSGeom_destroy_r(h.h, g.g)
 }
@@ -156,6 +161,11 @@ func NewEmptyPoint(h *Handle) *Geometry {
 
 func NewEmptyPolygon(h *Handle) *Geometry {
 	return &Geometry{C.GEOSGeom_createEmptyPolygon_r(h.h)}
+}
+
+func NewEmptyGeometryCollection(h *Handle, geomType GeometryTypeId) *Geometry {
+	i := C.int(geomType)
+	return &Geometry{C.GEOSGeom_createEmptyCollection_r(h.h, i)}
 }
 
 func NewPolygon(
@@ -172,6 +182,25 @@ func NewPolygon(
 	}
 	geom := C.GEOSGeom_createPolygon_r(
 		h.h, shell.g, holesCArray, C.uint(holeCount))
+	if geom == nil {
+		return nil, ErrGeos
+	}
+	return &Geometry{geom}, nil
+}
+
+func NewGeometryCollection(h *Handle, geomType GeometryTypeId,
+	gs []*Geometry) (*Geometry, error) {
+
+	ngeoms := C.uint(len(gs))
+
+	geosGeoms := make([]*C.GEOSGeometry, len(gs))
+	for i := 0; i < len(gs); i++ {
+		geosGeoms[i] = gs[i].g
+	}
+
+	geom := C.GEOSGeom_createCollection_r(h.h, C.int(geomType), &geosGeoms[0],
+		ngeoms)
+
 	if geom == nil {
 		return nil, ErrGeos
 	}
@@ -300,6 +329,23 @@ func (g *Geometry) Within(h *Handle, o *Geometry) (bool, error) {
 
 func (g *Geometry) IsEmpty(h *Handle) (bool, error) {
 	return predicate(C.GEOSisEmpty_r(h.h, g.g))
+}
+
+func (g *Geometry) NumGeometries(h *Handle) (int, error) {
+	// Valid for all Geometries, return -1 on error
+	i := int(C.GEOSGetNumGeometries_r(h.h, g.g))
+	if i < 0 {
+		return 0, ErrGeos
+	}
+	return i, nil
+}
+
+func (g *Geometry) GeometryN(h *Handle, n int) (*Geometry, error) {
+	geom := C.GEOSGetGeometryN_r(h.h, g.g, C.int(n))
+	if geom == nil {
+		return nil, ErrGeos
+	}
+	return &Geometry{geom}, nil
 }
 
 // https://trac.osgeo.org/geos/wiki/PreparedGeometry

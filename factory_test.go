@@ -61,7 +61,7 @@ func TestNewLinearRing(t *testing.T) {
 	}
 	// LinearRings dont have an area
 	if ring.Area() != 0 {
-		t.Errorf("Expected area of 0, got %s", ring.Area())
+		t.Errorf("Expected area of 0, got %f", ring.Area())
 	}
 }
 
@@ -91,7 +91,7 @@ func TestNewPolygon(t *testing.T) {
 		t.Errorf("Unexpected geom type: %d", poly.Type())
 	}
 	if poly.Area() != 4 {
-		t.Errorf("Expected area of 4, got %s", poly.Area())
+		t.Errorf("Expected area of 4, got %f", poly.Area())
 	}
 }
 
@@ -132,7 +132,7 @@ func TestNewPolygonWithHoles(t *testing.T) {
 	}
 	// 10x10 - 3x3 - 2x2 = 87
 	if poly.Area() != 87 {
-		t.Errorf("Expected area of 87, got %s", poly.Area())
+		t.Errorf("Expected area of 87, got %f", poly.Area())
 	}
 }
 

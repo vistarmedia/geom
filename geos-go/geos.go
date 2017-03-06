@@ -65,7 +65,7 @@ func NewCoordSeq(h *Handle, size, dims uint) *CoordSeq {
 }
 
 func (cs *CoordSeq) Destroy(h *Handle) {
-	C.GEOSGeom_destroy_r(h.h, cs.cs)
+	C.GEOSCoordSeq_destroy_r(h.h, cs.cs)
 }
 
 func (cs *CoordSeq) Size(h *Handle) uint {

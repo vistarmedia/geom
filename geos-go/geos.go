@@ -2,7 +2,7 @@
 // Requires libgeos 3.5.0 or greater to be linked. Not thread or memory safe.
 package geos
 
-// #include "../../../external/libgeos/geos_c.h"
+// #include "./external/libgeos/geos_c.h"
 // #include <stdlib.h>
 // extern GEOSContextHandle_t createGEOSHandle();
 import "C"

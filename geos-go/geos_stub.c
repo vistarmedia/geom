@@ -1,4 +1,4 @@
-#include "../../../external/libgeos/geos_c.h"
+#include "./external/libgeos/geos_c.h"
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>

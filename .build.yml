@@ -1,0 +1,13 @@
+image: archlinux
+packages:
+- go
+- geos
+sources:
+- https://github.com/vistarmedia/geom
+tasks:
+    - build: |
+        cd geom
+        go build
+    - test: |
+        cd geom
+        go test

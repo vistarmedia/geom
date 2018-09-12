@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"vistarmedia.com/vistar/geom"
+	"github.com/vistarmedia/geom"
 )
 
 func TestExample(t *testing.T) {

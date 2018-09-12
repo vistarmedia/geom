@@ -2,9 +2,9 @@
 package wkb
 
 import (
-	"vistarmedia.com/vistar/geom"
-	"vistarmedia.com/vistar/geom/geos-go"
-	"vistarmedia.com/vistar/geom/geos-go/handle"
+	"github.com/vistarmedia/geom"
+	"github.com/vistarmedia/geom/geos-go"
+	"github.com/vistarmedia/geom/geos-go/handle"
 )
 
 type Encodeable interface {

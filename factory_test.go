@@ -3,8 +3,8 @@ package geom
 import (
 	"testing"
 
-	"vistarmedia.com/vistar/geom/geos-go"
-	"vistarmedia.com/vistar/geom/geos-go/handle"
+	"github.com/vistarmedia/geom/geos-go"
+	"github.com/vistarmedia/geom/geos-go/handle"
 )
 
 var fact = NewFactory(handle.NewPooledHandleProvider())

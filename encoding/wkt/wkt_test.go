@@ -3,8 +3,8 @@ package wkt
 import (
 	"testing"
 
-	"vistarmedia.com/vistar/geom"
-	"vistarmedia.com/vistar/geom/geos-go/handle"
+	"github.com/vistarmedia/geom"
+	"github.com/vistarmedia/geom/geos-go/handle"
 )
 
 func TestWKT(t *testing.T) {

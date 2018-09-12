@@ -2,10 +2,10 @@
 package context
 
 import (
-	"vistarmedia.com/vistar/geom"
-	"vistarmedia.com/vistar/geom/encoding/wkb"
-	"vistarmedia.com/vistar/geom/encoding/wkt"
-	"vistarmedia.com/vistar/geom/geos-go/handle"
+	"github.com/vistarmedia/geom"
+	"github.com/vistarmedia/geom/encoding/wkb"
+	"github.com/vistarmedia/geom/encoding/wkt"
+	"github.com/vistarmedia/geom/geos-go/handle"
 )
 
 type Context struct {

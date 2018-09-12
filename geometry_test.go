@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"vistarmedia.com/vistar/geom/geos-go/handle"
+	"github.com/vistarmedia/geom/geos-go/handle"
 )
 
 func TestIntersection(t *testing.T) {

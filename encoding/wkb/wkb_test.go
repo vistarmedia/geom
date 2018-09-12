@@ -4,8 +4,8 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"vistarmedia.com/vistar/geom"
-	"vistarmedia.com/vistar/geom/geos-go/handle"
+	"github.com/vistarmedia/geom"
+	"github.com/vistarmedia/geom/geos-go/handle"
 )
 
 func TestWKB(t *testing.T) {

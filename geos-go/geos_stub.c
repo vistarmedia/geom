@@ -1,7 +1,7 @@
-#include "./external/libgeos/geos_c.h"
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <geos_c.h>
 
 
 void notice(const char *fmt, ...) {

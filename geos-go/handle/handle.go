@@ -5,7 +5,7 @@ import (
 	"runtime"
 	"sync"
 
-	"vistarmedia.com/vistar/geom/geos-go"
+	"github.com/vistarmedia/geom/geos-go"
 )
 
 // Leases GEOS handles in a thread safe manner. GEOS handles can not be shared

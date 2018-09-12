@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"vistarmedia.com/vistar/geom"
+	"github.com/vistarmedia/geom"
 )
 
 type ErrUnsupportedType string

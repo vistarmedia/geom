@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"vistarmedia.com/vistar/geom"
-	geomcontext "vistarmedia.com/vistar/geom/context"
+	"github.com/vistarmedia/geom"
+	geomcontext "github.com/vistarmedia/geom/context"
 )
 
 var (

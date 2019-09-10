@@ -381,7 +381,7 @@ func (r *WKBReader) Read(h *Handle, wkb []byte) (*Geometry, error) {
 	if len(wkb) < 1 {
 		return nil, ErrEmptyWKB
 	}
-	d := (*C.uchar)(unsafe.Pointer(&wkb[0]))
+	d := (*C.uchar)(&wkb[0])
 	length := C.size_t(len(wkb))
 	geom := C.GEOSWKBReader_read_r(h.h, r.r, d, length)
 	if geom == nil {

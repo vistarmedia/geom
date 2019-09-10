@@ -2,6 +2,7 @@ package geom
 
 import (
 	"fmt"
+	"runtime"
 	"sync"
 
 	"github.com/vistarmedia/geom/geos-go"
@@ -74,9 +75,9 @@ func (g *Geometry) unaryPredicate(op unaryPredicate) (bool, error) {
 }
 
 func (g *Geometry) binaryOperation(op binaryOp, o toGeos) (*Geometry, error) {
-
 	h := g.hp.Get()
 	geom, err := op(h, o.UnsafeToGeos())
+	runtime.KeepAlive(o)
 	g.hp.Put(h)
 	return newGeometryOrError(g.hp, geom, err)
 }
@@ -84,7 +85,9 @@ func (g *Geometry) binaryOperation(op binaryOp, o toGeos) (*Geometry, error) {
 func (g *Geometry) binaryPredicate(op binaryPredicate, o toGeos) (bool, error) {
 	h := g.hp.Get()
 	defer g.hp.Put(h)
-	return op(h, o.UnsafeToGeos())
+	val, err := op(h, o.UnsafeToGeos())
+	runtime.KeepAlive(o)
+	return val, err
 }
 
 func (g *Geometry) Prepared() *PreparedGeometry {
@@ -307,7 +310,9 @@ func (pg *PreparedGeometry) Covers(o toGeos) (bool, error) {
 	pg.Lock()
 	defer pg.Unlock()
 
-	return pg.p.Covers(h, o.UnsafeToGeos())
+	val, err := pg.p.Covers(h, o.UnsafeToGeos())
+	runtime.KeepAlive(o)
+	return val, err
 }
 
 // Point

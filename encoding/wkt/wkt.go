@@ -2,6 +2,8 @@
 package wkt
 
 import (
+	"runtime"
+
 	"github.com/vistarmedia/geom"
 	"github.com/vistarmedia/geom/geos-go"
 	"github.com/vistarmedia/geom/geos-go/handle"
@@ -31,7 +33,9 @@ func NewEncoder(hp handle.GeosHandleProvider) *Encoder {
 func (e *Encoder) Encode(g Encodeable) string {
 	h := e.hp.Get()
 	defer e.hp.Put(h)
-	return e.writer.Write(h, g.UnsafeToGeos())
+	wkt := e.writer.Write(h, g.UnsafeToGeos())
+	runtime.KeepAlive(g)
+	return wkt
 }
 
 type Decoder struct {

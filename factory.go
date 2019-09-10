@@ -16,7 +16,6 @@ type Coord struct {
 }
 
 func newGeosLinearRing(h *geos.Handle, coords []Coord) (*geos.Geometry, error) {
-
 	coordsLen := len(coords)
 	if coordsLen == 0 {
 		return nil, ErrEmptyCoords

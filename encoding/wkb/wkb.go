@@ -2,6 +2,8 @@
 package wkb
 
 import (
+	"runtime"
+
 	"github.com/vistarmedia/geom"
 	"github.com/vistarmedia/geom/geos-go"
 	"github.com/vistarmedia/geom/geos-go/handle"
@@ -27,7 +29,9 @@ func (e *Encoder) Encode(g Encodeable) []byte {
 	// time.
 	writer := geos.NewWKBWriter(h)
 	defer writer.Destroy(h)
-	return writer.Write(h, g.UnsafeToGeos())
+	wkb := writer.Write(h, g.UnsafeToGeos())
+	runtime.KeepAlive(g)
+	return wkb
 }
 
 type Decoder struct {

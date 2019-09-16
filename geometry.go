@@ -7,7 +7,6 @@ import (
 
 	"github.com/vistarmedia/geom/geos-go"
 	"github.com/vistarmedia/geom/geos-go/handle"
-	"github.com/vistarmedia/geom/geos-go/memory"
 )
 
 type GeometryType int
@@ -42,11 +41,16 @@ type binaryPredicate func(*geos.Handle, *geos.Geometry) (bool, error)
 func newGeometry(
 	hp handle.GeosHandleProvider, g *geos.Geometry) *Geometry {
 
-	memory.GeosGCManaged(hp, g)
-	return &Geometry{
+	geom := &Geometry{
 		hp: hp,
 		g:  g,
 	}
+	runtime.SetFinalizer(geom, func(geom1 *Geometry) {
+		h := geom1.hp.Get()
+		geom1.g.Destroy(h)
+		geom1.hp.Put(h)
+	})
+	return geom
 }
 
 func newGeometryOrError(
@@ -84,22 +88,27 @@ func (g *Geometry) binaryOperation(op binaryOp, o toGeos) (*Geometry, error) {
 
 func (g *Geometry) binaryPredicate(op binaryPredicate, o toGeos) (bool, error) {
 	h := g.hp.Get()
-	defer g.hp.Put(h)
 	val, err := op(h, o.UnsafeToGeos())
 	runtime.KeepAlive(o)
+	g.hp.Put(h)
 	return val, err
 }
 
 func (g *Geometry) Prepared() *PreparedGeometry {
 	h := g.hp.Get()
-	prep := g.g.Prepared(h)
+	p := g.g.Prepared(h)
 	g.hp.Put(h)
-	memory.GeosGCManaged(g.hp, prep)
-	return &PreparedGeometry{
+	prep := &PreparedGeometry{
 		hp:     g.hp,
-		p:      prep,
+		p:      p,
 		parent: g,
 	}
+	runtime.SetFinalizer(prep, func(prep1 *PreparedGeometry) {
+		h := prep1.hp.Get()
+		prep1.p.Destroy(h)
+		prep1.hp.Put(h)
+	})
+	return prep
 }
 
 // Unsafe access to the geos geometry. This geometry is still subject to GC.
@@ -209,6 +218,8 @@ func (g *Geometry) Bounds() (c0 Coord, c1 Coord, err error) {
 		shell []Coord
 	)
 
+	// TODO: envelope, polygon, and shell are all going to get and return a handle
+	// to the pool. We should just re-use the same handle.
 	if env, err = g.Envelope(); err != nil {
 		return
 	}
@@ -312,6 +323,7 @@ func (pg *PreparedGeometry) Covers(o toGeos) (bool, error) {
 
 	val, err := pg.p.Covers(h, o.UnsafeToGeos())
 	runtime.KeepAlive(o)
+	runtime.KeepAlive(pg.parent)
 	return val, err
 }
 

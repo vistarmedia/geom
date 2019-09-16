@@ -2,6 +2,7 @@ package geom
 
 import (
 	"errors"
+	"runtime"
 
 	"github.com/vistarmedia/geom/geos-go"
 	"github.com/vistarmedia/geom/geos-go/handle"
@@ -23,12 +24,15 @@ func newGeosLinearRing(h *geos.Handle, coords []Coord) (*geos.Geometry, error) {
 	cs := geos.NewCoordSeq(h, uint(coordsLen), 2)
 	for i, c := range coords {
 		if err := cs.SetX(h, uint(i), c.X); err != nil {
+			cs.Destroy(h)
 			return nil, err
 		}
 		if err := cs.SetY(h, uint(i), c.Y); err != nil {
+			cs.Destroy(h)
 			return nil, err
 		}
 	}
+	// LinearRing destructor will destroy the coord seq even on error
 	return cs.LinearRing(h)
 }
 
@@ -69,9 +73,11 @@ func (f Factory) NewPoint(c Coord) (p Point, err error) {
 	defer f.hp.Put(h)
 	cs := geos.NewCoordSeq(h, 1, 2)
 	if err = cs.SetX(h, 0, c.X); err != nil {
+		cs.Destroy(h)
 		return
 	}
 	if err = cs.SetY(h, 0, c.Y); err != nil {
+		cs.Destroy(h)
 		return
 	}
 	if point, err := cs.Point(h); err == nil {
@@ -125,8 +131,9 @@ func (f Factory) NewMultipolygon(ps ...Polygon) (mp Multipolygon, err error) {
 	defer f.hp.Put(h)
 
 	geoms := make([]*geos.Geometry, len(ps))
-	for i := 0; i < len(ps); i++ {
-		geoms[i] = ps[i].g.Clone(h)
+	for i, poly := range ps {
+		geoms[i] = poly.g.Clone(h)
+		runtime.KeepAlive(poly)
 	}
 
 	g, err := geos.NewGeometryCollection(h, geos.MULTIPOLYGON, geoms)

@@ -192,15 +192,13 @@ func NewPolygon(
 func NewGeometryCollection(h *Handle, geomType GeometryTypeId,
 	gs []*Geometry) (*Geometry, error) {
 
-	ngeoms := C.uint(len(gs))
-
 	geosGeoms := make([]*C.GEOSGeometry, len(gs))
-	for i := 0; i < len(gs); i++ {
-		geosGeoms[i] = gs[i].g
+	for i, g := range gs {
+		geosGeoms[i] = g.g
 	}
 
-	geom := C.GEOSGeom_createCollection_r(h.h, C.int(geomType), &geosGeoms[0],
-		ngeoms)
+	geom := C.GEOSGeom_createCollection_r(
+		h.h, C.int(geomType), &geosGeoms[0], C.uint(len(gs)))
 
 	if geom == nil {
 		return nil, ErrGeos

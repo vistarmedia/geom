@@ -7,7 +7,6 @@ import (
 	"github.com/vistarmedia/geom"
 	"github.com/vistarmedia/geom/geos-go"
 	"github.com/vistarmedia/geom/geos-go/handle"
-	"github.com/vistarmedia/geom/geos-go/memory"
 )
 
 type Encodeable interface {
@@ -23,11 +22,16 @@ func NewEncoder(hp handle.GeosHandleProvider) *Encoder {
 	h := hp.Get()
 	writer := geos.NewWKTWriter(h)
 	hp.Put(h)
-	memory.GeosGCManaged(hp, writer)
-	return &Encoder{
+	encoder := &Encoder{
 		hp:     hp,
 		writer: writer,
 	}
+	runtime.SetFinalizer(encoder, func(encoder1 *Encoder) {
+		h := encoder1.hp.Get()
+		encoder1.writer.Destroy(h)
+		encoder1.hp.Put(h)
+	})
+	return encoder
 }
 
 func (e *Encoder) Encode(g Encodeable) string {
@@ -48,12 +52,17 @@ func NewDecoder(hp handle.GeosHandleProvider, fact geom.Factory) *Decoder {
 	h := hp.Get()
 	reader := geos.NewWKTReader(h)
 	hp.Put(h)
-	memory.GeosGCManaged(hp, reader)
-	return &Decoder{
+	decoder := &Decoder{
 		hp:      hp,
 		reader:  reader,
 		factory: fact,
 	}
+	runtime.SetFinalizer(decoder, func(decoder1 *Decoder) {
+		h := decoder1.hp.Get()
+		decoder1.reader.Destroy(h)
+		decoder1.hp.Put(h)
+	})
+	return decoder
 }
 
 func (d *Decoder) Decode(wkt string) (*geom.Geometry, error) {

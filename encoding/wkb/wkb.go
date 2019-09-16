@@ -49,8 +49,8 @@ func NewDecoder(hp handle.GeosHandleProvider, fact geom.Factory) *Decoder {
 func (d *Decoder) Decode(wkb []byte) (*geom.Geometry, error) {
 	h := d.hp.Get()
 	reader := geos.NewWKBReader(h)
-	defer reader.Destroy(h)
 	geom, err := reader.Read(h, wkb)
+	reader.Destroy(h)
 	d.hp.Put(h)
 	if err != nil {
 		return nil, err
